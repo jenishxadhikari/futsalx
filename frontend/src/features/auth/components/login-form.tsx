@@ -1,7 +1,5 @@
-"use client"
-
 import { useState } from "react"
-import Link from "next/link"
+import { Link } from '@tanstack/react-router'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -38,10 +36,11 @@ export function LoginForm() {
   const pending = form.formState.isSubmitting
 
   async function onSubmit(data: z.infer<typeof loginSchema>) {
+    console.log(data)
     setShowPassword(false)
     setError(null)
     setTimeout(() => {
-      console.log(data);
+      console.log(data)
     }, 2000)
   }
 
@@ -52,7 +51,7 @@ export function LoginForm() {
       footer={
         <div className="text-center text-sm w-full">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="underline underline-offset-4">
+          <Link to="/register" className="underline underline-offset-4">
             Sign up
           </Link>
         </div>
@@ -90,7 +89,7 @@ export function LoginForm() {
                   <div className="flex w-full items-center justify-between">
                     <span>Password</span>
                     <Link
-                      href="/forgot-password"
+                      to="/forgot-password"
                       className="text-primary text-xs font-semibold underline-offset-2 hover:underline"
                     >
                       Forgot Password?

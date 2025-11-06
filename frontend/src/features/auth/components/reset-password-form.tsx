@@ -1,7 +1,5 @@
-"use client"
-
 import { useState } from "react"
-import Link from "next/link"
+import { Link } from '@tanstack/react-router'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -58,7 +56,7 @@ export function ResetPasswordForm() {
       footer={
         <div className="text-center text-sm w-full">
           Remember you password?{" "}
-          <Link href="/login" className="underline underline-offset-4">
+          <Link to="/login" className="underline underline-offset-4">
             Sign in
           </Link>
         </div>
