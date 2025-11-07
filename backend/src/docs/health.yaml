@@ -1,0 +1,43 @@
+tags:
+  - name: Health
+    description: Server health and status endpoints
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Returns server status (used for uptime monitoring)
+      tags: [Health]
+      responses:
+        "200":
+          description: Server is active
+        "500":
+          description: Internal server error
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        type:
+          type: string
+          example: OK
+        message:
+          type: string
+          example: Server Active
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        type:
+          type: string
+          example: INTERNAL_SERVER_ERROR
+        message:
+          type: string
+          example: Server Error!

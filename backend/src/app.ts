@@ -4,6 +4,7 @@ import cors from "cors"
 
 import { healthRouter } from "./routes/health.routes.ts"
 import { authRouter } from "./routes/auth.routes.ts"
+import { swagger } from "./swagger.ts"
 import { appOrigin } from "./config.ts"
 
 const app = express()
@@ -20,5 +21,7 @@ app.use(cookieParser())
 
 app.use('/api/v1', healthRouter)
 app.use('/api/v1', authRouter)
+
+app.use("/api/v1/docs", swagger)
 
 export { app }
