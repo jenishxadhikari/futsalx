@@ -12,19 +12,22 @@ const RootLayout = () => (
       <Link to="/login" className="[&.active]:font-bold">
         Login
       </Link>{" "}
-       <Link to="/register" className="[&.active]:font-bold">
+      <Link to="/register" className="[&.active]:font-bold">
         Register
       </Link>{" "}
-       <Link to="/forgot-password" className="[&.active]:font-bold">
+      <Link to="/verify" className="[&.active]:font-bold">
+        Verify Email
+      </Link>{" "}
+      <Link to="/forgot-password" className="[&.active]:font-bold">
         Forgot Password
       </Link>{" "}
-       <Link to="/reset-password" className="[&.active]:font-bold">
+      <Link to="/reset-password" className="[&.active]:font-bold">
         Reset Password
       </Link>{" "}
     </div>
     <hr />
     <Outlet />
-    <Toaster richColors/>
+    <Toaster richColors />
     <TanStackRouterDevtools />
   </>
 )

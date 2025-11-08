@@ -4,7 +4,7 @@ interface AuthWrapperProps {
   title: string
   description: string
   children: React.ReactNode
-  footer: React.ReactElement
+  footer?: React.ReactElement
 }
 
 export function AuthWrapper({ title, description, children, footer }: AuthWrapperProps) {

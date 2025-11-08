@@ -41,3 +41,9 @@ export const resetPasswordSchema = z.object({
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
   })
+
+export const verifyEmailSchema = z.object({
+  token: z.string().min(6, {
+    message: "Your one-time password must be 6 characters.",
+  }),
+})
