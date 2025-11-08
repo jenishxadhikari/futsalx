@@ -1,13 +1,20 @@
 import type { Request, Response } from "express";
 import argon2 from "argon2";
+import { eq } from "drizzle-orm";
+import crypto from "crypto";
 
 import { db } from "../db/index.ts";
-import { users } from "../db/schema.ts";
-import { createAccessToken, createRefreshToken, verifyRefreshToken } from "../lib/auth.ts";
-import { loginSchema, registerSchema } from "../schemas/auth.schema.ts";
+import { tokens, users } from "../db/schema.ts";
+import { sendMail } from "../lib/mail.ts";
+import { resetPasswordTemplate, verifyEmailTemplate } from "../lib/template.ts";
+import { createAccessToken, createRefreshToken, generateSecureOTP, verifyRefreshToken } from "../lib/auth.ts";
+import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema, verificationTokenSchema } from "../schemas/auth.schema.ts";
+
 import { getUserByEmail } from "../queries/user.queries.ts";
+import { deleteToken, getUserByToken } from "../queries/token.queries.ts";
 import { deleteRefreshToken } from "../queries/refresh-token.queries.ts";
 
+// /api/v1/auth/register - Register User
 export async function register(req: Request, res: Response) {
   try {
     const data = req.body
@@ -54,6 +61,7 @@ export async function register(req: Request, res: Response) {
   }
 }
 
+// /api/v1/auth/login - Login User
 export async function login(req: Request, res: Response) {
   try {
     const data = req.body
@@ -83,6 +91,31 @@ export async function login(req: Request, res: Response) {
         success: false,
         type: "BAD_REQUEST",
         message: "Invalid login credentials!"
+      })
+    }
+
+    if (!user.isVerified) {
+      const otp = generateSecureOTP()
+
+      await db.insert(tokens).values({
+        token: otp,
+        userId: user.id,
+        type: "verify",
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+      })
+
+      const mail = verifyEmailTemplate(otp)
+
+      await sendMail({
+        to: email,
+        subject: mail.subject,
+        html: mail.html
+      })
+
+      return res.status(403).json({
+        success: false,
+        type: "FORBIDDEN",
+        message: "Verification mail send! Please verify and login"
       })
     }
 
@@ -124,6 +157,7 @@ export async function login(req: Request, res: Response) {
   }
 }
 
+// /api/v1/auth/logout - Logout User
 export async function logout(req: Request, res: Response) {
   try {
     const refreshToken = req.cookies.refreshToken
@@ -159,6 +193,7 @@ export async function logout(req: Request, res: Response) {
   }
 }
 
+// /api/v1/auth/refresh - Generate new access token
 export async function refresh(req: Request, res: Response) {
   try {
     const refreshToken = req.cookies.refreshToken
@@ -180,6 +215,13 @@ export async function refresh(req: Request, res: Response) {
     }
 
     const accessToken = await createAccessToken(payload)
+    if (!accessToken) {
+      return res.status(500).json({
+        success: false,
+        type: "INTERNAL_SERVER_ERROR",
+        message: "Failed to register user. Please try again!"
+      })
+    }
 
     return res
       .status(200)
@@ -199,6 +241,7 @@ export async function refresh(req: Request, res: Response) {
   }
 }
 
+// /api/v1/auth/refresh - Generate current user
 export async function me(req: Request, res: Response) {
   try {
     const user = req.user
@@ -226,6 +269,161 @@ export async function me(req: Request, res: Response) {
       success: false,
       type: "INTERNAL_SERVER_ERROR",
       message: "Failed to get user data. Please try again!"
+    })
+  }
+}
+
+// /api/v1/auth/verify - Verify email address
+export async function emailVerification(req: Request, res: Response) {
+  try {
+    const data = req.body
+    const validateData = verificationTokenSchema.safeParse(data)
+    if (!validateData.success) {
+      return res.status(400).json({
+        success: false,
+        type: "BAD_REQUEST",
+        message: "Invalid input!"
+      })
+    }
+
+    const { token } = validateData.data
+
+    const user = await getUserByToken(token)
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        type: "BAD_REQUEST",
+        message: "Invalid OTP!"
+      })
+    }
+
+    await db.update(users).set({
+      isVerified: true
+    }).where(eq(users.id, user.id))
+
+    await deleteToken(token)
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+        type: "OK",
+        message: "Verification successful."
+      })
+  } catch (error) {
+    console.log(`[VERIFY_USER_ERROR]`, error);
+    return res.status(500).json({
+      success: false,
+      type: "INTERNAL_SERVER_ERROR",
+      message: "Failed to verify user. Please try again!"
+    })
+  }
+}
+
+// /api/v1/auth/refresh - Request for password reset
+export async function forgotPassword(req: Request, res: Response) {
+  try {
+    const data = req.body
+    const validateData = forgotPasswordSchema.safeParse(data)
+    if (!validateData.success) {
+      return res.status(400).json({
+        success: false,
+        type: "BAD_REQUEST",
+        message: "Invalid input!"
+      })
+    }
+
+    const { email } = validateData.data
+
+    const user = await getUserByEmail(email)
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        type: "BAD_REQUEST",
+        message: "Invalid login credentials!"
+      })
+    }
+
+    const token = crypto.randomUUID()
+
+    await db.insert(tokens).values({
+      token: token,
+      userId: user.id,
+      type: "reset",
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+    })
+
+    const mail = resetPasswordTemplate(token)
+
+    await sendMail({
+      to: email,
+      subject: mail.subject,
+      html: mail.html
+    })
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+        type: "OK",
+        message: "Send password reset mail."
+      })
+  } catch (error) {
+    console.log(`[FORGOT_PASSWORD_ERROR]`, error);
+    return res.status(500).json({
+      success: false,
+      type: "INTERNAL_SERVER_ERROR",
+      message: "Failed to send password reset mail. Please try again!"
+    })
+  }
+}
+
+// /api/v1/auth/refresh - Reset password
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    const token = req.params.token
+    const data = req.body
+    const validateData = resetPasswordSchema.safeParse(data)
+    if (!validateData.success) {
+      return res.status(400).json({
+        success: false,
+        type: "BAD_REQUEST",
+        message: "Invalid input!"
+      })
+    }
+
+    const { password } = validateData.data
+
+    const user = await getUserByToken(token)
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        type: "BAD_REQUEST",
+        message: "Invalid token!"
+      })
+    }
+
+    const hashedPassword = await argon2.hash(password)
+
+    await db.update(users).set({
+      password: hashedPassword
+    }).where(eq(users.id, user.id))
+    
+    await deleteToken(token)
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+        type: "OK",
+        message: "Password reset successful. Login to continue!"
+      })
+  } catch (error) {
+    console.log(`[RESET_PASSWORD_ERROR]`, error);
+    return res.status(500).json({
+      success: false,
+      type: "INTERNAL_SERVER_ERROR",
+      message: "Failed to send password reset mail. Please try again!"
     })
   }
 }

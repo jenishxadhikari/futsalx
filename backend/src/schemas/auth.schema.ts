@@ -41,3 +41,10 @@ export const resetPasswordSchema = z.object({
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
   })
+
+export const verificationTokenSchema = z.object({
+  token: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "OTP must be 6 digits")
+});

@@ -1,6 +1,7 @@
 import express from "express"
 import cookieParser from "cookie-parser"
 import cors from "cors"
+import helmet from "helmet"
 
 import { healthRouter } from "./routes/health.routes.ts"
 import { authRouter } from "./routes/auth.routes.ts"
@@ -18,6 +19,7 @@ app.use(
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
+app.use(helmet())
 
 app.use('/api/v1', healthRouter)
 app.use('/api/v1', authRouter)

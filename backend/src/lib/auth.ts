@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken"
 import { and, eq } from "drizzle-orm";
+import crypto from 'crypto';
 
 import { db } from "../db/index.ts"
 import { refreshTokens } from "../db/schema.ts"
@@ -72,4 +73,9 @@ export async function verifyRefreshToken(token: string) {
     console.log(`[GET_USER_BY_ID_ERROR]`, error);
     return null
   }
+}
+
+export function generateSecureOTP() {
+  const otp = crypto.randomInt(100000, 1000000);
+  return otp.toString();
 }

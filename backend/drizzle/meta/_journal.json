@@ -22,6 +22,20 @@
       "when": 1762430207930,
       "tag": "0002_massive_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1762522694423,
+      "tag": "0003_cute_vulcan",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1762536584642,
+      "tag": "0004_daily_human_fly",
+      "breakpoints": true
     }
   ]
 }
